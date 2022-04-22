@@ -9,6 +9,8 @@ namespace PersonalShoppingAPI.Utills
         public MapperProfile()
         {
             CreateMap<User, UsersDto>().ReverseMap();
+            CreateMap<User, CreateAccountDto>().ReverseMap(); 
+            CreateMap<User, AuthDto>().ReverseMap();
         }
     }
 }
