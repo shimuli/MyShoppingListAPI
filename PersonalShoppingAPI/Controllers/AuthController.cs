@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using PersonalShoppingAPI.Dto;
@@ -152,6 +153,7 @@ namespace PersonalShoppingAPI.Controllers
                 //new Claim(JwtRegisteredClaimNames.Exp, expTime.ToString()),
                 new Claim("id", authuser.Id.ToString()),
                 new Claim("username", authuser.FullName),
+                 new Claim("phoneNumber", authuser.PhoneNumber),
                 new Claim("verified", authuser.IsVerified.ToString()),
                 new Claim("isactive", authuser.IsActive.ToString()),
 
@@ -235,6 +237,7 @@ namespace PersonalShoppingAPI.Controllers
                     return BadRequest(new { message = "This user was verified" });
                 }
 
+
                 // verify sms
                 string message = $"Your verification code is {userPhone.VerificationCode}";
                 var systemdefaults = await _context.Systemdefaults.FirstOrDefaultAsync();
@@ -258,56 +261,268 @@ namespace PersonalShoppingAPI.Controllers
             {
                 return BadRequest(new { message = ex.Message });
             }
-        
 
         }
 
 
-        [HttpPost("{id}")]
-        public async Task<IActionResult> VerfiyPhone(int id, [FromForm] VerifyPhoneDto verifyDto)
+        [HttpGet("ForgotPasswordVerifyCode")]
+        public async Task<IActionResult> ForgotPasswordVerifyCode(string phoneNumber)
         {
-            _logger.LogInformation(verifyDto.Phone + " verified account");
-            var getUser = await _moviesDbContext.Users.FindAsync(id);
+            var getUser = await _context.Users.FirstOrDefaultAsync(c => c.PhoneNumber == phoneNumber);
 
-            if (getUser == null)
+            if (getUser == null || getUser.PhoneNumber != phoneNumber)
             {
-                return NotFound();
+                return NotFound(new { message = "invalid user phone number" });
             }
 
-            var userPhone = await _moviesDbContext.Users.FirstOrDefaultAsync(u => u.Phone == verifyDto.Phone);
-            if (userPhone == null)
+            if (getUser.IsVerified == false)
             {
-                return NotFound();
+                return BadRequest(new { message = "User is not verified" });
             }
-            if (userPhone.confirmCode == null)
+
+            if(getUser.ForgotPasswordCode != null)
             {
-                //return StatusCode(StatusCodes.Status406NotAcceptable);
+                // verify sms
+                string message = $"Your verification code is {getUser.ForgotPasswordCode}";
+                var systemdefaults = await _context.Systemdefaults.FirstOrDefaultAsync();
+                var smsResponse = SmsService.VerifyAccount(systemdefaults.SmsuserId, systemdefaults.Smskey, getUser.PhoneNumber, message);
+
+                if (smsResponse == "Sent")
+                {
+                    return new ObjectResult(new
+                    {
+                        message = "Code was sent succesfully",
+                        userId = getUser.Id,
+                        code = getUser.ForgotPasswordCode
+                    });
+                }
+                else
+                {
+                    return BadRequest(new { smserror = smsResponse });
+                }
+            }
+            string forgotpasswordcode = Convert.ToString(random.Next(1000, 9999));
+            int response = GenerateCode(getUser, forgotpasswordcode);
+            if(response > 0)
+            {
+                // verify sms
+                string message = $"Your verification code is {forgotpasswordcode}";
+                var systemdefaults = await _context.Systemdefaults.FirstOrDefaultAsync();
+                var smsResponse = SmsService.VerifyAccount(systemdefaults.SmsuserId, systemdefaults.Smskey, getUser.PhoneNumber, message);
+
+                if (smsResponse == "Sent")
+                {
+                    return new ObjectResult(new
+                    {
+                        message = "Code was sent succesfully",
+                        userId = getUser.Id,
+                        code = forgotpasswordcode
+                    });
+                }
+                else
+                {
+                    return BadRequest(new { smserror = smsResponse });
+                }
+            }
+            else
+            {
+                return BadRequest(new {message = "Please try again later" });
+            }
+        }
+
+        [HttpGet("ResendforgotCode")]
+        public async Task<IActionResult> ResendforgotCode(string phonenumber)
+        {
+            try
+            {
+
+                var userPhone = await _context.Users.FirstOrDefaultAsync(u => u.PhoneNumber == phonenumber);
+                if (userPhone == null)
+                {
+                    return NotFound(new { message = "User not found" });
+                }
+
+                if (userPhone.ForgotPasswordCode !=null)
+                {
+
+                    // verify sms
+                    string sms = $"Your verification code is {userPhone.ForgotPasswordCode}";
+                    var systemdefaultsx = await _context.Systemdefaults.FirstOrDefaultAsync();
+                    var responsex = SmsService.VerifyAccount(systemdefaultsx.SmsuserId, systemdefaultsx.Smskey, userPhone.PhoneNumber, sms);
+
+                    if (responsex == "Sent")
+                    {
+                        return new ObjectResult(new
+                        {
+                            message = "Code was resent succesfully",
+                            userId = userPhone.Id,
+                            code = userPhone.ForgotPasswordCode
+                        });
+                    }
+                    else
+                    {
+                        return BadRequest(new { smserror = responsex });
+                    }
+                }
+
+                string forgotpasswordresendcode = Convert.ToString(random.Next(1000, 9999));
+                int codeResponse = GenerateCode(userPhone, forgotpasswordresendcode);
+                if (codeResponse > 0)
+                {
+                    // verify sms
+                    string message = $"Your verification code is {forgotpasswordresendcode}";
+                    var systemdefaults = await _context.Systemdefaults.FirstOrDefaultAsync();
+                    var smsResponse = SmsService.VerifyAccount(systemdefaults.SmsuserId, systemdefaults.Smskey, userPhone.PhoneNumber, message);
+
+                    if (smsResponse == "Sent")
+                    {
+                        return new ObjectResult(new
+                        {
+                            message = "Code was sent succesfully",
+                            userId = userPhone.Id,
+                            code = forgotpasswordresendcode
+                        });
+                    }
+                    else
+                    {
+                        return BadRequest(new { smserror = smsResponse });
+                    }
+                }
+                else
+                {
+                    return BadRequest(new { message = "Something went wrong" });
+                }
+
+            }
+             catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+           
+            
+        }
+
+        [HttpPost("CreateNewPassword")]
+        public async Task<IActionResult> CreateNewPassword(CreateNewPasswordDto createNewPassword)
+        {
+            try
+            {
+                var getUser = await _context.Users.FirstOrDefaultAsync(c => c.PhoneNumber == createNewPassword.PhoneNumber); // int.Parse(User.FindFirstValue("id"))
+
+                if (getUser == null || createNewPassword.PhoneNumber != getUser.PhoneNumber)
+                {
+                    return NotFound(new { message = "Phone number does not exist" });
+                }
+                if (getUser.IsVerified == false)
+                {
+                    return BadRequest(new { message = "user is not verified" });
+                }
+
+
+                if (createNewPassword.ForgotPasswordCode != getUser.ForgotPasswordCode)
+                {
+                    return Unauthorized(new { messagge = "Invalid code" });
+                }
+
+                getUser.IsVerified = true;
+                getUser.VerificationCode = null;
+                getUser.ForgotPasswordCode = null;
+                getUser.Password = SecurePasswordHasherHelper.Hash(createNewPassword.NewPassword); ;
+                //_context.Users.Update(info);
+                await _context.SaveChangesAsync();
+
+                return Ok(new { message = "Password was updated succesfully" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+
+        }
+
+        [Authorize]
+        [HttpPost("UpdateProfileImage")]
+        public async Task<IActionResult> UpdateProfileImage([FromForm] UpdateImageDto createNewPassword)
+        {
+            try
+            {
+                var getUser = await _context.Users.FirstOrDefaultAsync(c => c.Id == int.Parse(User.FindFirstValue("id")) && c.PhoneNumber == User.FindFirstValue("phoneNumber"));
+                if (getUser == null)
+                {
+                    return NotFound(new { message = "user not found" });
+                }
+                // get image
+                var files = HttpContext.Request.Form.Files;
+                string webRootPath = _webHostEnvironment.WebRootPath;
+                string imageUrl = String.Empty;
+                if (files.Count > 0)
+                {
+                    string upload = webRootPath + WebContants.ProfileImages;
+                    string fileName = Guid.NewGuid().ToString();
+                    string extension = Path.GetExtension(files[0].FileName);
+
+                    // remove current image
+                    if (getUser.ImageUrl != null)
+                    {
+                        string webRootpath = _webHostEnvironment.WebRootPath;
+                        string uploadx = webRootpath + WebContants.ProfileImages;
+                        var oldFile = Path.Combine(uploadx, Path.GetFileName(getUser.ImageUrl));
+                        if (System.IO.File.Exists(oldFile))
+                        {
+                            System.IO.File.Delete(oldFile);
+                        }
+                    }
+
+
+                    using (var filestream = new FileStream(Path.Combine(upload, fileName + extension), FileMode.Create))
+                    {
+                        files[0].CopyTo(filestream);
+                    }
+
+                    getUser.ImageUrl = _baseUrl + WebContants.ProfileImages + fileName + extension;
+                }
+                else
+                {
+                    getUser.ImageUrl = getUser.ImageUrl;
+                }
+
+                await _context.SaveChangesAsync();
+
                 return new ObjectResult(new
                 {
-                    message = "This number was verified"
+                    message = "Image was updated",
+                    getUser.Id,
+                    getUser.ImageUrl
                 });
 
+
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
             }
 
-            if (verifyDto.confirmCode != userPhone.confirmCode)
-            {
-                return Unauthorized();
-            }
-
-
-
-            _mapper.Map<User>(verifyDto);
-
-            getUser.PhoneVerified = true;
-            getUser.confirmCode = null;
-            await _moviesDbContext.SaveChangesAsync();
-
-            return new ObjectResult(new
-            {
-                message = "Phone number verified successfully",
-                verifiedPhone = userPhone.PhoneVerified,
-            });
         }
 
+
+        private  int GenerateCode(User getUser, string randomNum)
+        {
+            try
+            {
+                
+                using SqlConnection connection = new(_configuration.GetConnectionString("DevConnectionString"));
+                connection.Open();
+                string sql = $"update USERS set ForgotPasswordCode = {randomNum} where Id = {getUser.Id} and PhoneNumber = '{getUser.PhoneNumber}'";
+                SqlCommand cmd = new SqlCommand(sql, connection);
+                int results = cmd.ExecuteNonQuery();
+
+                connection.Close();
+                return results;
+            }
+            catch (Exception)
+            {
+                return 0;
+            }
+        }
     }
 }

@@ -2,14 +2,15 @@
 
 namespace PersonalShoppingAPI.Dto
 {
-    public class VerifyPhoneDto
+    public class CreateNewPasswordDto
     {
-        [Required]
-        public int Id { get; set; }
         [Required]
         public string PhoneNumber { get; set; }
 
         [Required]
-        public int VerificationCode { get; set; }
+        public int ForgotPasswordCode { get; set; }
+
+        [Required]
+        public string NewPassword { get; set; }
     }
 }

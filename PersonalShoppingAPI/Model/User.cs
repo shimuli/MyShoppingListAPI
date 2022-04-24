@@ -24,6 +24,9 @@ namespace PersonalShoppingAPI.Model
         [JsonIgnore]
         public int? VerificationCode { get; set; }
 
+        [JsonIgnore]
+        public int? ForgotPasswordCode { get; set; }
+
         public bool? IsVerified { get; set; }
     }
 }
