@@ -33,7 +33,7 @@ namespace PersonalShoppingAPI.Controllers
 
         }
 
-        [Authorize]
+        [Authorize(Roles = "Admin")]
         [HttpGet("GetUsers")]
         public async Task<IActionResult> GetUsers(string username)
         {

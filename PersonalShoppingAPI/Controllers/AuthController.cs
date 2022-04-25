@@ -504,6 +504,134 @@ namespace PersonalShoppingAPI.Controllers
 
         }
 
+        [Authorize]
+        [HttpPost("UpdateProfile")]
+        public async Task<IActionResult> UpdateProfile([FromForm] UpdateProfileDto updateProfileDto)
+        {
+            try
+            {
+                var getUser = await _context.Users.FirstOrDefaultAsync(c => c.Id == int.Parse(User.FindFirstValue("id")) && c.PhoneNumber == User.FindFirstValue("phoneNumber"));
+                if (getUser == null)
+                {
+                    return NotFound(new { message = "user not found" });
+                }
+                // get image
+                var files = HttpContext.Request.Form.Files;
+                string webRootPath = _webHostEnvironment.WebRootPath;
+                string imageUrl = String.Empty;
+                if (files.Count > 0)
+                {
+                    string upload = webRootPath + WebContants.ProfileImages;
+                    string fileName = Guid.NewGuid().ToString();
+                    string extension = Path.GetExtension(files[0].FileName);
+
+                    // remove current image
+                    if (getUser.ImageUrl != null)
+                    {
+                        string webRootpath = _webHostEnvironment.WebRootPath;
+                        string uploadx = webRootpath + WebContants.ProfileImages;
+                        var oldFile = Path.Combine(uploadx, Path.GetFileName(getUser.ImageUrl));
+                        if (System.IO.File.Exists(oldFile))
+                        {
+                            System.IO.File.Delete(oldFile);
+                        }
+                    }
+
+
+                    using (var filestream = new FileStream(Path.Combine(upload, fileName + extension), FileMode.Create))
+                    {
+                        files[0].CopyTo(filestream);
+                    }
+
+                    getUser.ImageUrl = _baseUrl + WebContants.ProfileImages + fileName + extension;
+                }
+                else
+                {
+                    getUser.ImageUrl = getUser.ImageUrl;
+                }
+                if(updateProfileDto.FullName != null)
+                {
+                    getUser.FullName = updateProfileDto.FullName;
+                }
+                else if(updateProfileDto.FullName == null)
+                {
+                    getUser.FullName = getUser.FullName;
+                }
+
+                //if (updateProfileDto.PhoneNumber != null)
+                //{
+                //    if(updateProfileDto.PhoneNumber == getUser.PhoneNumber)
+                //    {
+                //        getUser.PhoneNumber = updateProfileDto.PhoneNumber;
+                //    }
+                //    else
+                //    {
+                //        string generateCode = Convert.ToString(random.Next(1000, 9999));
+                //        int verifyResponse = GenerateVerifciaionCode(getUser, generateCode);
+                //        if(verifyResponse > 0)
+                //        {
+                //            // verify sms
+                //            string sms = $"Your verification code is {getUser.VerificationCode}";
+                //            var systemdefaultsx = await _context.Systemdefaults.FirstOrDefaultAsync();
+                //            var responsex = SmsService.VerifyAccount(systemdefaultsx.SmsuserId, systemdefaultsx.Smskey, getUser.PhoneNumber, sms);
+                //        }
+
+                //    }
+
+                //}
+               
+
+                await _context.SaveChangesAsync();
+
+                return new ObjectResult(new
+                {
+                    message = "User Name and Image updated",
+                    getUser.Id,
+                    getUser.ImageUrl,
+                    getUser.FullName,
+                });
+
+
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+
+        }
+
+
+        [Authorize]
+        [HttpPost("UpdatePassword")]
+        public async Task<IActionResult> UpdatePassword(UpdatePasswordDto updatePassword)
+        {
+            try
+            {
+                var getUser = await _context.Users.FirstOrDefaultAsync(c => c.Id == int.Parse(User.FindFirstValue("id")) && c.PhoneNumber == User.FindFirstValue("phoneNumber"));
+               
+                if (getUser.IsVerified == false)
+                {
+                    return BadRequest(new { message = "user is not verified" });
+                }
+
+
+                if (!SecurePasswordHasherHelper.Verify(updatePassword.CurrentPassword, getUser.Password))
+                {
+                    return Unauthorized(new { messagge = "Invalid user information" });
+                }
+
+                getUser.Password = SecurePasswordHasherHelper.Hash(updatePassword.NewPassword); ;
+                await _context.SaveChangesAsync();
+
+                return Ok(new { message = "New password was set succesfully" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+
+        }
+
 
         private  int GenerateCode(User getUser, string randomNum)
         {
@@ -513,6 +641,27 @@ namespace PersonalShoppingAPI.Controllers
                 using SqlConnection connection = new(_configuration.GetConnectionString("DevConnectionString"));
                 connection.Open();
                 string sql = $"update USERS set ForgotPasswordCode = {randomNum} where Id = {getUser.Id} and PhoneNumber = '{getUser.PhoneNumber}'";
+                SqlCommand cmd = new SqlCommand(sql, connection);
+                int results = cmd.ExecuteNonQuery();
+
+                connection.Close();
+                return results;
+            }
+            catch (Exception)
+            {
+                return 0;
+            }
+        }
+
+
+        private int GenerateVerifciaionCode(User getUser, string randomNum)
+        {
+            try
+            {
+
+                using SqlConnection connection = new(_configuration.GetConnectionString("DevConnectionString"));
+                connection.Open();
+                string sql = $"update USERS set VerificationCode = {random}, isverified = NULL where Id = {getUser.Id} and PhoneNumber = '{getUser.PhoneNumber}'";
                 SqlCommand cmd = new SqlCommand(sql, connection);
                 int results = cmd.ExecuteNonQuery();
 

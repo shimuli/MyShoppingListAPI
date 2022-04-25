@@ -11,6 +11,7 @@ namespace PersonalShoppingAPI.Utills
             CreateMap<User, UsersDto>().ReverseMap();
             CreateMap<User, CreateAccountDto>().ReverseMap(); 
             CreateMap<User, AuthDto>().ReverseMap();
+            CreateMap<User, UpdateProfileDto>().ReverseMap();
         }
     }
 }
