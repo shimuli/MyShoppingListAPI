@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using PersonalShoppingAPI.Dto;
 using PersonalShoppingAPI.Model;
 using PersonalShoppingAPI.Repository.IRepo;
 using System;
@@ -12,6 +13,7 @@ using System.Threading.Tasks;
 
 namespace PersonalShoppingAPI.Controllers
 {
+    [Authorize(Roles = "Admin")]
     [Route("api/[controller]")]
     [ApiController]
     public class UsersController : ControllerBase
@@ -32,8 +34,6 @@ namespace PersonalShoppingAPI.Controllers
             _webHostEnvironment = webHostEnvironment;
 
         }
-
-        [Authorize(Roles = "Admin")]
         [HttpGet("GetUsers")]
         public async Task<IActionResult> GetUsers(string username)
         {
@@ -47,6 +47,12 @@ namespace PersonalShoppingAPI.Controllers
             {
                 return BadRequest(new { exception = ex.Message });
             }
+
+        }
+
+        [HttpPost("CreateUser")]
+        public async Task<IActionResult> CreateUser(CreateAdminDto createAdminDto)
+        {
 
         }
     }

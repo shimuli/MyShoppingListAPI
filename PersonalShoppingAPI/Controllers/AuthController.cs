@@ -160,6 +160,7 @@ namespace PersonalShoppingAPI.Controllers
              };
                 var token = _auth.GenerateAccessToken(claims);
 
+                LoginTimeUpdate(authuser);
                 return new ObjectResult(new
                 {
                     token.AccessToken,
@@ -179,7 +180,6 @@ namespace PersonalShoppingAPI.Controllers
             }
            
         }
-
 
         [HttpPost("VerfiyPhone")]
         public async Task<IActionResult> VerfiyPhone(VerifyPhoneDto verifyDto)
@@ -662,6 +662,26 @@ namespace PersonalShoppingAPI.Controllers
                 using SqlConnection connection = new(_configuration.GetConnectionString("DevConnectionString"));
                 connection.Open();
                 string sql = $"update USERS set VerificationCode = {random}, isverified = NULL where Id = {getUser.Id} and PhoneNumber = '{getUser.PhoneNumber}'";
+                SqlCommand cmd = new SqlCommand(sql, connection);
+                int results = cmd.ExecuteNonQuery();
+
+                connection.Close();
+                return results;
+            }
+            catch (Exception)
+            {
+                return 0;
+            }
+        }
+
+        private int LoginTimeUpdate(User authuser)
+        {
+            try
+            {
+                string dateLogin = DateTime.Now.ToString("yyyy/MM/dd HH:mm:ss");  // 2022/04/25 14:55:34:44
+                using SqlConnection connection = new(_configuration.GetConnectionString("DevConnectionString"));
+                connection.Open();
+                string sql = $"update Users set LastLogin = '{dateLogin}' where Id = {authuser.Id} and phoneNumber = '{authuser.PhoneNumber}'";
                 SqlCommand cmd = new SqlCommand(sql, connection);
                 int results = cmd.ExecuteNonQuery();
 

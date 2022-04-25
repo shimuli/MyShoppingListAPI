@@ -1,24 +1,26 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
-#nullable disable
-
-namespace PersonalShoppingAPI.Model
+namespace PersonalShoppingAPI.Dto
 {
-    public partial class User
+    public class CreateAdminDto
     {
-        public int Id { get; set; }
         public string FullName { get; set; }
         public string PhoneNumber { get; set; }
         public string ImageUrl { get; set; }
 
-        [JsonIgnore]
         public string Password { get; set; }
+
+        [JsonIgnore]
         public string Role { get; set; }
+
+        [JsonIgnore]
         public bool IsActive { get; set; }
 
+        [JsonIgnore]
         public DateTime? DateCreated { get; set; }
+
+        [JsonIgnore]
         public DateTime? DateUpdated { get; set; }
 
         [JsonIgnore]
@@ -27,8 +29,8 @@ namespace PersonalShoppingAPI.Model
         [JsonIgnore]
         public int? ForgotPasswordCode { get; set; }
 
+        [JsonIgnore]
         public bool? IsVerified { get; set; }
 
-        public DateTime? LastLogin { get; set; }
     }
 }
