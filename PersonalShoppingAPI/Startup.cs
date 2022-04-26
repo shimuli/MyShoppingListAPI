@@ -15,6 +15,7 @@ using Microsoft.OpenApi.Models;
 using PersonalShoppingAPI.Model;
 using PersonalShoppingAPI.Repository.IRepo;
 using PersonalShoppingAPI.Repository.Repo;
+using PersonalShoppingAPI.Services;
 using PersonalShoppingAPI.Utills;
 using System;
 using System.Collections.Generic;
@@ -121,6 +122,9 @@ namespace PersonalShoppingAPI
 
             // repo
             services.AddScoped<IUserRepo, UserRepo>();
+
+            // background service
+            services.AddHostedService<DeleteAccountService>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

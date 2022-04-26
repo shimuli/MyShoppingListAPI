@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.AspNetCore.Http;
+using System;
 using System.Text.Json.Serialization;
 
 namespace PersonalShoppingAPI.Dto
@@ -7,6 +8,8 @@ namespace PersonalShoppingAPI.Dto
     {
         public string FullName { get; set; }
         public string PhoneNumber { get; set; }
+
+        [JsonIgnore]
         public string ImageUrl { get; set; }
 
         public string Password { get; set; }
@@ -31,6 +34,8 @@ namespace PersonalShoppingAPI.Dto
 
         [JsonIgnore]
         public bool? IsVerified { get; set; }
+
+        public IFormFile Image { get; set; }
 
     }
 }

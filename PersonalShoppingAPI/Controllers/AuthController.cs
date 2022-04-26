@@ -137,7 +137,10 @@ namespace PersonalShoppingAPI.Controllers
             try
             {
                 var authuser = await _context.Users.FirstOrDefaultAsync(u => u.PhoneNumber == loginDto.PhoneNumber);
-
+                if(authuser.IsActive == false)
+                {
+                    return Unauthorized(new { message = "The user is blocked" });
+                }
                 if (authuser == null || !SecurePasswordHasherHelper.Verify(loginDto.Password, authuser.Password))
                 {
                     return Unauthorized(new { message = "Invalid phone number or password" });
@@ -557,28 +560,6 @@ namespace PersonalShoppingAPI.Controllers
                 {
                     getUser.FullName = getUser.FullName;
                 }
-
-                //if (updateProfileDto.PhoneNumber != null)
-                //{
-                //    if(updateProfileDto.PhoneNumber == getUser.PhoneNumber)
-                //    {
-                //        getUser.PhoneNumber = updateProfileDto.PhoneNumber;
-                //    }
-                //    else
-                //    {
-                //        string generateCode = Convert.ToString(random.Next(1000, 9999));
-                //        int verifyResponse = GenerateVerifciaionCode(getUser, generateCode);
-                //        if(verifyResponse > 0)
-                //        {
-                //            // verify sms
-                //            string sms = $"Your verification code is {getUser.VerificationCode}";
-                //            var systemdefaultsx = await _context.Systemdefaults.FirstOrDefaultAsync();
-                //            var responsex = SmsService.VerifyAccount(systemdefaultsx.SmsuserId, systemdefaultsx.Smskey, getUser.PhoneNumber, sms);
-                //        }
-
-                //    }
-
-                //}
                
 
                 await _context.SaveChangesAsync();
