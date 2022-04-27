@@ -15,6 +15,7 @@ namespace PersonalShoppingAPI.Utills
             CreateMap<User, CreateAdminDto>().ReverseMap();
             CreateMap<Month, CreateMonths>().ReverseMap();
             CreateMap<Category, CreateCategoryDto>().ReverseMap();
+            CreateMap<Product, CreateProductDto > ().ReverseMap();
         }
     }
 }

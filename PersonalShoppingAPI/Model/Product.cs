@@ -11,7 +11,7 @@ namespace PersonalShoppingAPI.Model
         public string ProductId { get; set; }
         public string ProductName { get; set; }
         public string ProductDescription { get; set; }
-        public double UnitOfSale { get; set; }
+        public string UnitOfSale { get; set; }
         public double PricerPerUnit { get; set; }
         public double PackageSize { get; set; }
         public double ProductQuantity { get; set; }

@@ -57,10 +57,10 @@ namespace PersonalShoppingAPI.Controllers
                     return BadRequest(new { message = ModelState.Values.ToString() });
                 }
                 var category = await _context.Categories.FirstOrDefaultAsync(c => c.Name.Trim().ToLower() == createCategory.Name.Trim().ToLower());
-                if (category != null)
-                {
-                    return Unauthorized(new { message = "category already exists" });
-                }
+                //if (category != null)
+                //{
+                //    return BadRequest(new { message = "category already exists" });
+                //}
 
                 var addCategory = _mapper.Map<Category>(createCategory);
                 await _context.Categories.AddAsync(addCategory);

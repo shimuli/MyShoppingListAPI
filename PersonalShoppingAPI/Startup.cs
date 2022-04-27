@@ -124,7 +124,7 @@ namespace PersonalShoppingAPI
             services.AddScoped<IUserRepo, UserRepo>();
 
             // background service
-            services.AddHostedService<DeleteAccountService>();
+            //services.AddHostedService<DeleteAccountService>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

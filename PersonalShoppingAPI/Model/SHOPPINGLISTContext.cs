@@ -1,6 +1,7 @@
 ﻿using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
+using PersonalShoppingAPI.Dto;
 
 #nullable disable
 
@@ -23,6 +24,7 @@ namespace PersonalShoppingAPI.Model
         public virtual DbSet<SystemLog> SystemLogs { get; set; }
         public virtual DbSet<Systemdefault> Systemdefaults { get; set; }
         public virtual DbSet<User> Users { get; set; }
+        public virtual DbSet<UserCodeVM> NextNumber { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
@@ -127,6 +129,12 @@ namespace PersonalShoppingAPI.Model
                 entity.Property(e => e.Role)
                     .HasMaxLength(50)
                     .IsUnicode(false);
+            });
+
+            modelBuilder.Entity<UserCodeVM>(entity =>
+            {
+                entity.HasNoKey();
+
             });
 
             OnModelCreatingPartial(modelBuilder);

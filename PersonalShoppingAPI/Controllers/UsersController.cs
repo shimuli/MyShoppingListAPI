@@ -1,5 +1,6 @@
 ﻿using AuthenticationPlugin;
 using AutoMapper;
+using ImageMagick;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -10,6 +11,7 @@ using PersonalShoppingAPI.Model;
 using PersonalShoppingAPI.Repository.IRepo;
 using PersonalShoppingAPI.Utills;
 using System;
+using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -77,12 +79,16 @@ namespace PersonalShoppingAPI.Controllers
                 string imageUrl = String.Empty;
                 if (files.Count > 0)
                 {
+                    
+
                     string upload = webRootPath + WebContants.ProfileImages;
                     string fileName = Guid.NewGuid().ToString();
                     string extension = Path.GetExtension(files[0].FileName);
 
+
                     using (var filestream = new FileStream(Path.Combine(upload, fileName + extension), FileMode.Create))
                     {
+                     
                         files[0].CopyTo(filestream);
                     }
 
