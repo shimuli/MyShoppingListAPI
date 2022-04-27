@@ -44,7 +44,15 @@ namespace PersonalShoppingAPI.Controllers
             {
                 var users = string.IsNullOrEmpty(username) ? await _context.Users.ToListAsync()
                     : await _context.Users.Where(c => c.FullName.Contains(username)).ToListAsync();
-                return Ok(users);
+                if (users.Count > 0)
+                {
+                    return Ok(users);
+                }
+                else
+                {
+                    return NotFound(new { message = "No data to display" });
+                }
+                
             }
             catch (System.Exception ex)
             {
@@ -72,6 +80,7 @@ namespace PersonalShoppingAPI.Controllers
                     string upload = webRootPath + WebContants.ProfileImages;
                     string fileName = Guid.NewGuid().ToString();
                     string extension = Path.GetExtension(files[0].FileName);
+
                     using (var filestream = new FileStream(Path.Combine(upload, fileName + extension), FileMode.Create))
                     {
                         files[0].CopyTo(filestream);
@@ -104,7 +113,6 @@ namespace PersonalShoppingAPI.Controllers
             }
             
         }
-
 
         [HttpPost("BlockUser")]
         public async Task<IActionResult> BlockUser(int Id)
@@ -151,6 +159,40 @@ namespace PersonalShoppingAPI.Controllers
                 return BadRequest(new { message = ex.Message });
             }
 
+        }
+
+        [HttpDelete("DeleteUser")]
+        public async Task<IActionResult> DeleteUser(int Id)
+        {
+            try
+            {
+                var user = await _context.Users.FirstOrDefaultAsync(c => c.Id == Id);
+                if (user == null)
+                {
+                    return NotFound(new { message = "User not found" });
+                }
+                // remove user image
+                if (user.ImageUrl != null)
+                {
+                    string webRootpath = _webHostEnvironment.WebRootPath;
+                    string uploadx = webRootpath + WebContants.ProfileImages;
+                    var oldFile = Path.Combine(uploadx, Path.GetFileName(user.ImageUrl));
+                    if (System.IO.File.Exists(oldFile))
+                    {
+                        System.IO.File.Delete(oldFile);
+                    }
+                }
+
+                _context.Remove(user);
+                await _context.SaveChangesAsync();
+
+                return Ok(new { message = "Account deleted" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new {message = ex.Message});
+            }
+            
         }
 
     }
