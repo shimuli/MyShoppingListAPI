@@ -15,17 +15,19 @@ namespace PersonalShoppingAPI.Model
         public double PricerPerUnit { get; set; }
         public double PackageSize { get; set; }
         public double ProductQuantity { get; set; }
+        public double UpdatedQuantity { get; set; }
         public string Store { get; set; }
         public double TotalCost { get; set; }
         public string ImageUrl { get; set; }
         public bool IsActive { get; set; }
-        public bool IsFavourite { get; set; }
+        public bool IsFavourite { get; set; } = false;
+        public DateTime? ExpiryDate { get; set; } = null;
         public int CateoryId { get; set; }
         public int MonthId { get; set; }
         public int UserId { get; set; }
         public DateTime? DateCreated { get; set; }
         public DateTime? DateUpdated { get; set; }
-
+        public bool IsRecurring { get; set; }
         public virtual Category Cateory { get; set; }
         public virtual Month Month { get; set; }
     }

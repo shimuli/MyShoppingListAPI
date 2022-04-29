@@ -9,6 +9,7 @@
     <PackageReference Include="AspNetCore.Authentication.Plugin" Version="1.0.1" />
     <PackageReference Include="AutoMapper" Version="11.0.1" />
     <PackageReference Include="AutoMapper.Extensions.Microsoft.DependencyInjection" Version="11.0.0" />
+    <PackageReference Include="Faker.Net" Version="2.0.154" />
     <PackageReference Include="Magick.NET-Q16-AnyCPU" Version="11.1.0" />
     <PackageReference Include="Magick.NET.Core" Version="11.1.0" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="5.0.16" />

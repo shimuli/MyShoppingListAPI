@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using PersonalShoppingAPI.Dto;
 using PersonalShoppingAPI.Model;
 using PersonalShoppingAPI.Repository.IRepo;
@@ -29,7 +30,9 @@ namespace PersonalShoppingAPI.Controllers
         private readonly IWebHostEnvironment _webHostEnvironment;
         Random random = new();
         string _baseUrl;
-        public UsersController(SHOPPINGLISTContext context, IMapper mapper, IUserRepo iUserRepo, IHttpContextAccessor httpContext, IWebHostEnvironment webHostEnvironment)
+        private readonly ILogger<UsersController> _logger;
+        public UsersController(ILogger<UsersController> logger,SHOPPINGLISTContext context, IMapper mapper, IUserRepo iUserRepo, 
+            IHttpContextAccessor httpContext, IWebHostEnvironment webHostEnvironment)
         {
             _context = context;
             _mapper = mapper;
@@ -37,6 +40,7 @@ namespace PersonalShoppingAPI.Controllers
             var request = httpContext.HttpContext.Request;
             _baseUrl = $"{request.Scheme}://{request.Host}";
             _webHostEnvironment = webHostEnvironment;
+            _logger = logger;
 
         }
         [HttpGet("GetUsers")]
@@ -58,6 +62,7 @@ namespace PersonalShoppingAPI.Controllers
             }
             catch (System.Exception ex)
             {
+                _logger.LogError("GetUsers: " + ex, ex.Message);
                 return BadRequest(new { exception = ex.Message });
             }
 
@@ -108,6 +113,7 @@ namespace PersonalShoppingAPI.Controllers
                 adduser.DateCreated = System.DateTime.Now;
                 adduser.DateUpdated = System.DateTime.Now;
                 adduser.ImageUrl = imageUrl;
+                adduser.ProductExNotificaionDay = 7;
                 await _context.Users.AddAsync(adduser);
                 await _context.SaveChangesAsync();
 
@@ -115,6 +121,7 @@ namespace PersonalShoppingAPI.Controllers
             }
             catch (Exception ex)
             {
+                _logger.LogError("CreateUser: " + ex, ex.Message);
                 return BadRequest(new { message = ex.Message });
             }
             
@@ -138,6 +145,7 @@ namespace PersonalShoppingAPI.Controllers
             }
             catch (Exception ex)
             {
+                _logger.LogError("BlockUser: " + ex, ex.Message);
                 return BadRequest(new {message=ex.Message});
             }
 
@@ -162,6 +170,7 @@ namespace PersonalShoppingAPI.Controllers
             }
             catch (Exception ex)
             {
+                _logger.LogError("ActivateUser: " + ex, ex.Message);
                 return BadRequest(new { message = ex.Message });
             }
 
@@ -196,6 +205,7 @@ namespace PersonalShoppingAPI.Controllers
             }
             catch (Exception ex)
             {
+                _logger.LogError("DeleteUser: " + ex, ex.Message);
                 return BadRequest(new {message = ex.Message});
             }
             

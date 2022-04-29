@@ -5,6 +5,7 @@ namespace PersonalShoppingAPI.Dto
     {
         public string FullName { get; set; }
 
+        public int ProductExNotificaionDay { get; set; }
         public IFormFile Image { get; set; }
     }
 }

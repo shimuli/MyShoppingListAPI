@@ -18,6 +18,8 @@ namespace PersonalShoppingAPI.Dto
         [Required]
         public string Password { get; set; }
 
+        public int ProductExNotificaionDay { get; set; }
+
         public IFormFile Image { get; set; }
     }
 }

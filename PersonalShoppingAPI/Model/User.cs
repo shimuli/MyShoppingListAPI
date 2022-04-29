@@ -30,5 +30,7 @@ namespace PersonalShoppingAPI.Model
         public bool? IsVerified { get; set; }
 
         public DateTime? LastLogin { get; set; }
+
+        public int? ProductExNotificaionDay { get; set; }
     }
 }

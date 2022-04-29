@@ -7,10 +7,7 @@ namespace PersonalShoppingAPI.Dto
 {
     public class CreateProductDto
     {
-        [JsonIgnore]
-        public int Id { get; set; }
-        [JsonIgnore]
-        public string ProductId { get; set; }
+        
 
         [Required]
         public string ProductName { get; set; }
@@ -33,15 +30,9 @@ namespace PersonalShoppingAPI.Dto
         public double ProductQuantity { get; set; }
         public string Store { get; set; }
 
-        [JsonIgnore]
-        public double TotalCost { get; set; }
-
-        [JsonIgnore]
-        public string ImageUrl { get; set; }
-
-        [JsonIgnore]
-        public bool IsActive { get; set; } = true;
         public bool IsFavourite { get; set; } = false;
+
+        public DateTime ExpiryDate { get; set; }
 
         [Required]
         public int CateoryId { get; set; }
@@ -49,15 +40,8 @@ namespace PersonalShoppingAPI.Dto
         [Required]
         public int MonthId { get; set; }
 
-        [JsonIgnore]
-        public int UserId { get; set; }
-
-        [JsonIgnore]
-        public DateTime? DateCreated { get; set; }
-
-        [JsonIgnore]
-        public DateTime? DateUpdated { get; set; }
-
+        [Required]
+        public bool IsRecurring { get; set; }
         public IFormFile Image { get; set; }
 
     }

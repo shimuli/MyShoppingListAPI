@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using PersonalShoppingAPI.Dto;
 using PersonalShoppingAPI.Model;
 using System.Threading.Tasks;
@@ -16,11 +17,13 @@ namespace PersonalShoppingAPI.Controllers
     {
         private readonly SHOPPINGLISTContext _context;
         private readonly IMapper _mapper;
+        private readonly ILogger<MonthsController> _logger;
 
-        public MonthsController(SHOPPINGLISTContext context, IMapper mapper)
+        public MonthsController(SHOPPINGLISTContext context, IMapper mapper, ILogger<MonthsController> logger)
         {
             _context = context;
             _mapper = mapper;
+            _logger = logger;
 
         }
         
@@ -30,6 +33,7 @@ namespace PersonalShoppingAPI.Controllers
         {
             try
             {
+               // throw new System.Exception();
                 var months = await _context.Months.ToListAsync();
                 if(months.Count > 0)
                 {
@@ -43,6 +47,7 @@ namespace PersonalShoppingAPI.Controllers
             }
             catch (System.Exception ex)
             {
+                _logger.LogError("GetMonths: " + ex, ex.Message);
                 return BadRequest(new {message =ex.Message});
             }                
         }
@@ -51,20 +56,29 @@ namespace PersonalShoppingAPI.Controllers
         [HttpPost("CreateMonth")]
         public async Task<IActionResult> CreateMonth(CreateMonths createMonths)
         {
-            if (!ModelState.IsValid)
+            try
             {
-                return BadRequest(new { message = ModelState.Values.ToString() });
-            }
-            var months = await _context.Months.FirstOrDefaultAsync(c => c.MonthName.Trim().ToLower() == createMonths.MonthName.Trim().ToLower());
-            if (months != null)
-            {
-                return BadRequest(new { message = "month already exists" });
-            }
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(new { message = ModelState.Values.ToString() });
+                }
+                var months = await _context.Months.FirstOrDefaultAsync(c => c.MonthName.Trim().ToLower() == createMonths.MonthName.Trim().ToLower());
+                if (months != null)
+                {
+                    return BadRequest(new { message = "month already exists" });
+                }
 
-            var addmonth = _mapper.Map<Month>(createMonths);       
-            await _context.Months.AddAsync(addmonth);
-            await _context.SaveChangesAsync();
-            return Ok(addmonth);
+                var addmonth = _mapper.Map<Month>(createMonths);
+                await _context.Months.AddAsync(addmonth);
+                await _context.SaveChangesAsync();
+                return Ok(addmonth);
+            }
+            catch (System.Exception ex)
+            {
+                _logger.LogError("CreateMonth: " + ex, ex.Message);
+                return BadRequest(new { message = ex.Message });
+            }
+            
         }
 
     }

@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using PersonalShoppingAPI.Dto;
 using PersonalShoppingAPI.Model;
 using PersonalShoppingAPI.Repository.IRepo;
@@ -29,10 +30,11 @@ namespace PersonalShoppingAPI.Controllers
         private readonly IUserRepo _iUserRepo;
         private readonly IWebHostEnvironment _webHostEnvironment;
         private readonly AuthService _auth;
+        private readonly ILogger<AuthController> _logger;
         Random random = new();
         string _baseUrl;
         private readonly IConfiguration _configuration;
-        public AuthController(SHOPPINGLISTContext context, IMapper mapper, IUserRepo iUserRepo, 
+        public AuthController(ILogger<AuthController> logger ,SHOPPINGLISTContext context, IMapper mapper, IUserRepo iUserRepo, 
             IHttpContextAccessor httpContext, IWebHostEnvironment webHostEnvironment, IConfiguration configuration)
         {
             _context = context;
@@ -41,6 +43,7 @@ namespace PersonalShoppingAPI.Controllers
             var request = httpContext.HttpContext.Request;
             _baseUrl = $"{request.Scheme}://{request.Host}";
             _webHostEnvironment = webHostEnvironment;
+            _logger = logger;
 
             // for jwt
             _configuration = configuration;
@@ -102,7 +105,10 @@ namespace PersonalShoppingAPI.Controllers
                 adduser.DateUpdated = System.DateTime.Now;
                 adduser.ImageUrl = imageUrl;
 
-             
+                if(adduser.ProductExNotificaionDay == null || adduser.ProductExNotificaionDay == 0)
+                {
+                    adduser.ProductExNotificaionDay = 7;
+                }
 
                 await _context.Users.AddAsync(adduser);
                 await _context.SaveChangesAsync();
@@ -125,6 +131,7 @@ namespace PersonalShoppingAPI.Controllers
             }
             catch (System.Exception ex)
             {
+                _logger.LogError("CreateAccount: " + ex, ex.Message);
                 return BadRequest(new { exception = ex.Message });
             }
 
@@ -179,6 +186,7 @@ namespace PersonalShoppingAPI.Controllers
             }
             catch (Exception ex)
             {
+                _logger.LogError("Login: " + ex, ex.Message);
                 return BadRequest(new {message =ex.Message});
             }
            
@@ -215,6 +223,7 @@ namespace PersonalShoppingAPI.Controllers
             }
             catch (Exception ex)
             {
+                _logger.LogError("Verify Phone: " + ex, ex.Message);
                 return BadRequest(new { message = ex.Message });
             }
            
@@ -262,6 +271,7 @@ namespace PersonalShoppingAPI.Controllers
             }
             catch (Exception ex)
             {
+                _logger.LogError("Resend Code: " + ex, ex.Message);
                 return BadRequest(new { message = ex.Message });
             }
 
@@ -271,67 +281,77 @@ namespace PersonalShoppingAPI.Controllers
         [HttpGet("ForgotPasswordVerifyCode")]
         public async Task<IActionResult> ForgotPasswordVerifyCode(string phoneNumber)
         {
-            var getUser = await _context.Users.FirstOrDefaultAsync(c => c.PhoneNumber == phoneNumber);
-
-            if (getUser == null || getUser.PhoneNumber != phoneNumber)
+            try
             {
-                return NotFound(new { message = "invalid user phone number" });
-            }
+                var getUser = await _context.Users.FirstOrDefaultAsync(c => c.PhoneNumber == phoneNumber);
 
-            if (getUser.IsVerified == false)
-            {
-                return BadRequest(new { message = "User is not verified" });
-            }
-
-            if(getUser.ForgotPasswordCode != null)
-            {
-                // verify sms
-                string message = $"Your verification code is {getUser.ForgotPasswordCode}";
-                var systemdefaults = await _context.Systemdefaults.FirstOrDefaultAsync();
-                var smsResponse = SmsService.VerifyAccount(systemdefaults.SmsuserId, systemdefaults.Smskey, getUser.PhoneNumber, message);
-
-                if (smsResponse == "Sent")
+                if (getUser == null || getUser.PhoneNumber != phoneNumber)
                 {
-                    return new ObjectResult(new
+                    return NotFound(new { message = "invalid user phone number" });
+                }
+
+                if (getUser.IsVerified == false)
+                {
+                    return BadRequest(new { message = "User is not verified" });
+                }
+
+                if (getUser.ForgotPasswordCode != null)
+                {
+                    // verify sms
+                    string message = $"Your verification code is {getUser.ForgotPasswordCode}";
+                    var systemdefaults = await _context.Systemdefaults.FirstOrDefaultAsync();
+                    var smsResponse = SmsService.VerifyAccount(systemdefaults.SmsuserId, systemdefaults.Smskey, getUser.PhoneNumber, message);
+
+                    if (smsResponse == "Sent")
                     {
-                        message = "Code was sent succesfully",
-                        userId = getUser.Id,
-                        code = getUser.ForgotPasswordCode
-                    });
+                        return new ObjectResult(new
+                        {
+                            message = "Code was sent succesfully",
+                            userId = getUser.Id,
+                            code = getUser.ForgotPasswordCode
+                        });
+                    }
+                    else
+                    {
+                        return BadRequest(new { smserror = smsResponse });
+                    }
+                }
+                string forgotpasswordcode = Convert.ToString(random.Next(1000, 9999));
+                int response = GenerateCode(getUser, forgotpasswordcode);
+                if (response > 0)
+                {
+                    // verify sms
+                    string message = $"Your verification code is {forgotpasswordcode}";
+                    var systemdefaults = await _context.Systemdefaults.FirstOrDefaultAsync();
+                    var smsResponse = SmsService.VerifyAccount(systemdefaults.SmsuserId, systemdefaults.Smskey, getUser.PhoneNumber, message);
+
+                    if (smsResponse == "Sent")
+                    {
+                        return new ObjectResult(new
+                        {
+                            message = "Code was sent succesfully",
+                            userId = getUser.Id,
+                            code = forgotpasswordcode
+                        });
+                    }
+                    else
+                    {
+                        return BadRequest(new { smserror = smsResponse });
+                    }
                 }
                 else
                 {
-                    return BadRequest(new { smserror = smsResponse });
+                    return BadRequest(new { message = "Please try again later" });
                 }
-            }
-            string forgotpasswordcode = Convert.ToString(random.Next(1000, 9999));
-            int response = GenerateCode(getUser, forgotpasswordcode);
-            if(response > 0)
-            {
-                // verify sms
-                string message = $"Your verification code is {forgotpasswordcode}";
-                var systemdefaults = await _context.Systemdefaults.FirstOrDefaultAsync();
-                var smsResponse = SmsService.VerifyAccount(systemdefaults.SmsuserId, systemdefaults.Smskey, getUser.PhoneNumber, message);
 
-                if (smsResponse == "Sent")
-                {
-                    return new ObjectResult(new
-                    {
-                        message = "Code was sent succesfully",
-                        userId = getUser.Id,
-                        code = forgotpasswordcode
-                    });
-                }
-                else
-                {
-                    return BadRequest(new { smserror = smsResponse });
-                }
             }
-            else
+            catch (Exception ex)
             {
-                return BadRequest(new {message = "Please try again later" });
+                _logger.LogError("ForgotPasswordVerifyCode: " + ex, ex.Message);
+                return BadRequest(new { message = ex.Message });
             }
         }
+            
 
         [HttpGet("ResendforgotCode")]
         public async Task<IActionResult> ResendforgotCode(string phonenumber)
@@ -364,6 +384,7 @@ namespace PersonalShoppingAPI.Controllers
                     }
                     else
                     {
+                        
                         return BadRequest(new { smserror = responsex });
                     }
                 }
@@ -399,6 +420,7 @@ namespace PersonalShoppingAPI.Controllers
             }
              catch (Exception ex)
             {
+                _logger.LogError("ResendforgotCode: " + ex, ex.Message);
                 return BadRequest(new { message = ex.Message });
             }
            
@@ -438,6 +460,7 @@ namespace PersonalShoppingAPI.Controllers
             }
             catch (Exception ex)
             {
+                _logger.LogError("Create New Password: " + ex, ex.Message);
                 return BadRequest(new { message = ex.Message });
             }
 
@@ -502,6 +525,7 @@ namespace PersonalShoppingAPI.Controllers
             }
             catch (Exception ex)
             {
+                _logger.LogError("UpdateProfileImage: " + ex, ex.Message);
                 return BadRequest(new { message = ex.Message });
             }
 
@@ -560,7 +584,16 @@ namespace PersonalShoppingAPI.Controllers
                 {
                     getUser.FullName = getUser.FullName;
                 }
-               
+
+                if (updateProfileDto.ProductExNotificaionDay != null || updateProfileDto.ProductExNotificaionDay >0)
+                {
+                    getUser.ProductExNotificaionDay = updateProfileDto.ProductExNotificaionDay;
+                }
+                else if (updateProfileDto.ProductExNotificaionDay == null || updateProfileDto.ProductExNotificaionDay < 0)
+                {
+                    getUser.ProductExNotificaionDay = getUser.ProductExNotificaionDay;
+                }
+
 
                 await _context.SaveChangesAsync();
 
@@ -576,6 +609,7 @@ namespace PersonalShoppingAPI.Controllers
             }
             catch (Exception ex)
             {
+                _logger.LogError("UpdateProfile: " + ex, ex.Message);
                 return BadRequest(new { message = ex.Message });
             }
 
@@ -608,6 +642,7 @@ namespace PersonalShoppingAPI.Controllers
             }
             catch (Exception ex)
             {
+                _logger.LogError("UpdatePassword: " + ex, ex.Message);
                 return BadRequest(new { message = ex.Message });
             }
 
@@ -628,8 +663,9 @@ namespace PersonalShoppingAPI.Controllers
                 connection.Close();
                 return results;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                _logger.LogError("GenerateCode: " + ex, ex.Message);
                 return 0;
             }
         }
@@ -649,8 +685,9 @@ namespace PersonalShoppingAPI.Controllers
                 connection.Close();
                 return results;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                _logger.LogError("GenerateVerifciaionCode: " + ex, ex.Message);
                 return 0;
             }
         }
@@ -669,8 +706,9 @@ namespace PersonalShoppingAPI.Controllers
                 connection.Close();
                 return results;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                _logger.LogError("LoginTimeUpdate: " + ex, ex.Message);
                 return 0;
             }
         }

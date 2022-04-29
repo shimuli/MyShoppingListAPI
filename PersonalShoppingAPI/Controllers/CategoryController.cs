@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using PersonalShoppingAPI.Dto;
 using PersonalShoppingAPI.Model;
 using System.Threading.Tasks;
@@ -15,11 +16,13 @@ namespace PersonalShoppingAPI.Controllers
     {
         private readonly SHOPPINGLISTContext _context;
         private readonly IMapper _mapper;
+        private readonly ILogger<CategoryController> _logger;
 
-        public CategoryController(SHOPPINGLISTContext context, IMapper mapper)
+        public CategoryController(SHOPPINGLISTContext context, IMapper mapper, ILogger<CategoryController> logger)
         {
             _context = context;
             _mapper = mapper;
+            _logger = logger;
 
         }
 
@@ -42,6 +45,7 @@ namespace PersonalShoppingAPI.Controllers
             }
             catch (System.Exception ex)
             {
+                _logger.LogError("GetCategories: " + ex, ex.Message);
                 return BadRequest(new { message = ex.Message });
             }
         }
@@ -69,6 +73,7 @@ namespace PersonalShoppingAPI.Controllers
             }
             catch (System.Exception ex)
             {
+                _logger.LogError("CreateCategory: " + ex, ex.Message);
                 return BadRequest(new { message = ex.Message });
             }
             
@@ -120,7 +125,7 @@ namespace PersonalShoppingAPI.Controllers
             }
             catch (System.Exception ex)
             {
-
+                _logger.LogError("EditCategory: " + ex, ex.Message);
                 return BadRequest(new { message = ex.Message });
             }
             
@@ -143,6 +148,7 @@ namespace PersonalShoppingAPI.Controllers
             }
             catch (System.Exception ex)
             {
+                _logger.LogError("DeleteCategory: " + ex, ex.Message);
                 return BadRequest(new { message = ex.Message });
             }
           
